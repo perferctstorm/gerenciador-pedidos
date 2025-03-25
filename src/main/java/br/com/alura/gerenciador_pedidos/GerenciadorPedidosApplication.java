@@ -1,9 +1,11 @@
 package br.com.alura.gerenciador_pedidos;
 
 import br.com.alura.gerenciador_pedidos.model.Categoria;
+import br.com.alura.gerenciador_pedidos.model.Fornecedor;
 import br.com.alura.gerenciador_pedidos.model.Pedido;
 import br.com.alura.gerenciador_pedidos.model.Produto;
-import br.com.alura.gerenciador_pedidos.repository.CategoruaRepository;
+import br.com.alura.gerenciador_pedidos.repository.CategoriaRepository;
+import br.com.alura.gerenciador_pedidos.repository.FornecedorRepository;
 import br.com.alura.gerenciador_pedidos.repository.PedidoRepository;
 import br.com.alura.gerenciador_pedidos.repository.ProdutoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,16 +14,18 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @SpringBootApplication
 public class GerenciadorPedidosApplication implements CommandLineRunner {
-
 	@Autowired
-	private CategoruaRepository categoruaRepository;
+	CategoriaRepository categoriaRepository;
 	@Autowired
-	private PedidoRepository pedidoRepository;
+	FornecedorRepository fornecedorRepository;
 	@Autowired
-	private ProdutoRepository produtoRepository;
+	PedidoRepository pedidoRepository;
+	@Autowired
+	ProdutoRepository produtoRepository;
 
 	public static void main(String[] args) {
 		SpringApplication.run(GerenciadorPedidosApplication.class, args);
@@ -29,14 +33,43 @@ public class GerenciadorPedidosApplication implements CommandLineRunner {
 
 	@Override
 	public void run(String... args) throws Exception {
-		Produto produto = new Produto("Notebook", 3500.0);
-		Categoria categoria = new Categoria(1L, "Eletrônicos");
-		Pedido pedido = new Pedido(1L, LocalDate.now());
+		// Criando categorias
+		Categoria categoriaEletronicos = new Categoria(1L, "Eletrônicos");
+		Categoria categoriaLivros = new Categoria(2L, "Livros");
+		categoriaRepository.saveAll(List.of(categoriaEletronicos, categoriaLivros));
 
-		produtoRepository.save(produto);
-		categoruaRepository.save(categoria);
-		pedidoRepository.save(pedido);
+		// Criando fornecedores
+		Fornecedor fornecedorTech = new Fornecedor("Tech Supplier");
+		Fornecedor fornecedorLivros = new Fornecedor("Livraria Global");
+		fornecedorRepository.saveAll(List.of(fornecedorTech, fornecedorLivros));
 
-		System.out.println("Sucesso!");
+		// Criando produtos
+		Produto produto1 = new Produto("Notebook", 3500.0, categoriaEletronicos, fornecedorTech);
+		Produto produto2 = new Produto("Smartphone", 2500.0, categoriaEletronicos, fornecedorTech);
+		Produto produto3 = new Produto("Livro de Java", 100.0, categoriaLivros, fornecedorLivros);
+		produtoRepository.saveAll(List.of(produto1, produto2, produto3));
+
+		// Criando pedidos e associando produtos
+		Pedido pedido1 = new Pedido(1L, LocalDate.now());
+		pedido1.setProdutos(List.of(produto1, produto3));
+		Pedido pedido2 = new Pedido(2L, LocalDate.now().minusDays(1));
+		pedido2.setProdutos(List.of(produto2));
+		pedidoRepository.saveAll(List.of(pedido1, pedido2));
+
+		System.out.println("Produtos na categoria Eletrônicos:");
+		categoriaRepository.findById(1L).ifPresent(c-> c.getProdutos()
+						.forEach(p-> System.out.println(String.format(" - %s",p.getNome()))));
+
+		System.out.println("\nPedidos e seus produtos:");
+		pedidoRepository.findAll().forEach(p->{
+			System.out.println(String.format("Pedido %d:", p.getId()));
+			p.getProdutos().forEach(pdto-> System.out.println(String.format(" - %s", pdto.getNome())));
+		});
+
+		System.out.println("\nProdutos e seus fornecedores:");
+		produtoRepository.findAll().forEach(p->{
+			System.out.println(String.format("Produto: %s, Fornecedor: %s.",
+					p.getNome(), p.getFornecedor().getNome()));
+		});
 	}
 }
